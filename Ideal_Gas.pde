@@ -1,33 +1,40 @@
 // Make it so there are collisions until an equilibrium is reached
-//(0nCollisions as the measure maybe?)
+//(nCollisions as the measure maybe?)
 
 // then turn off collisions - maybe then turn on stats or have them on
 // all the time to see distribution moving
 
-int N = 50000;
-int M = 1000;
+int N = 10000;
+int M = 500;
 
-float ratio = float(M)/float(N);
+float normFactor = 0.1*float(M)/float(N);
 int setFrameRate = 60;
 float dRad = 10;
 float dDensity = 10;
 int randVelAdd = 1;
 float maxVel = 2;
-float depth = 500;
+float depth = 500; // for 3D visuals
 
 float maxSpSq = 4.5;
 
+// Normalising factors to help plotting later
 float maxPressure = 0;
-float energyMax = 0;
+float maxEnergy = 0;
 int maxCollisions = 0;
-float t = 0;
+
+float t = 0; // "time" as an x-axis
+int count = 0; // counting variable to set how often we reset the statistical 0's
+int averagingTime = 1000; // how often to calculate statistics over draw loops
+
 float piSpeedSq;
-float tSpeed = 0;
-int nCollisions = 0;
+float sQspeedSum = 0;
+
+int nCollisions = 0; // Number of collisions 
+
 float energy;
 
-int count = 0;
-int averagingTime = 1;
+
+
 
 
 float rotAngleX, rotAngleY = 0;
@@ -81,7 +88,7 @@ void setup()
 
 void draw()
 { 
-  background(0);
+  //background(0);
   //lights();
 
 
@@ -95,9 +102,10 @@ void draw()
   {
     force = 0;
     nCollisions = 0;
-    tSpeed = 0;
+    sQspeedSum = 0;
   }
-  count =+ 1;
+  count += 1;
+  //println(count);
 
   // Loop is how many times the system evolves per draw loop
   for (int loop = 1; loop > 0; loop = loop - 1)
@@ -152,54 +160,70 @@ void draw()
     }
   }
 
-  background(0);
-  if (count == averagingTime)
+  for (int i = 0; i < N; i = i + 1)
   {
-    count = 0;
+    //p.get(i).show();
+    piSpeedSq = magSq(p.get(i).vel);
+    sQspeedSum += piSpeedSq;
 
-    // Calculating the pressure from the wall collisions
-    // Could save this data and plot it - Thermodynamic limit
-    pressure = force;//(6*width*height)*1000;
-    energy = tSpeed;
+    int index = floor(M * piSpeedSq / maxSpSq);
+    //println(index);
+    v[index] += 1;
+  }
+
+
+  // Display statistics every time that averagingTime loops
+  if (count >= averagingTime)
+  {
+    background(0);
+    count = 0;
+    
+    
 
     // Show all the particles in their new positons 
-    for (int i = 0; i < N; i = i + 1)
-    {
-      //p.get(i).show();
-      piSpeedSq = magSq(p.get(i).vel);
-      tSpeed += piSpeedSq;
+    //for (int i = 0; i < N; i = i + 1)
+    //{
+    //  //p.get(i).show();
+    //  piSpeedSq = magSq(p.get(i).vel);
+    //  sQspeedSum += piSpeedSq;
 
-      int index = floor(M * piSpeedSq / maxSpSq);
-      //println(index);
-      v[index] += 1;
-    }
+    //  int index = floor(M * piSpeedSq / maxSpSq);
+    //  //println(index);
+    //  v[index] += 1;
+    //}
 
     if (pressure > maxPressure)
     {
       maxPressure = pressure;
     }
-    if (energy > energyMax)
+    if (energy > maxEnergy)
     {
-      energyMax = energy;
+      maxEnergy = energy;
     }
     if (nCollisions > maxCollisions)
     {
       maxCollisions = nCollisions;
     }
 
+    // Calculating the pressure from the wall collisions
+    // Could save this data and plot it - Thermodynamic limit
+    pressure = force;//(6*width*height)*1000;
+    energy = sQspeedSum;
+
+
 
     //stroke(255, 0, 0); // Red Pressure
     //point(t, height*(1-pressure/maxPressure));
 
     //stroke(0, 255, 0); // Green Energy
-    //point(t, height*(1-energy/energyMax));
+    //point(t, height*(1-energy/maxEnergy));
 
     //stroke(0, 0, 255); // Blue Collisions
     //point(t, height*(1-float(nCollisions)/float(maxCollisions)));
 
-    //println("FrameRate: " + frameRate);
+    println("FrameRate: " + frameRate);
     //println("Pressure: " + pressure);
-    println("Collisions: " + nCollisions);
+    //println("Collisions: " + nCollisions);
     //println("Average Speed Squared: " + energy);
     //println("N: " + N);
     //println();
@@ -207,12 +231,15 @@ void draw()
     stroke(255);
     for (int i = 0; i < M; i ++)
     {
-      if (v[i] != 0)
-      {
-      println("count " + i + ": " + v[i]);
-      }
-      point(i*width/M, height*(1 - 0.1*ratio*(v[i])));
+      //if (v[i] != 0)
+      //{
+      //println("count " + i + ": " + v[i]);
+      //}
+      point(2*i*width/M, height*(1 - normFactor*v[i]/averagingTime));
     }
+    
+    //could save the images formed??
+
 
     if (t > width)
     {
