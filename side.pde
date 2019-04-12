@@ -24,7 +24,7 @@ class Particle
     vel.add(acc);
     pos.add(vel);
     acc.set(zero.copy());
-    vel.limit(maxVel);
+    //vel.limit(maxVel);
   }
 
   void show()

@@ -4,15 +4,15 @@
 // then turn off collisions - maybe then turn on stats or have them on
 // all the time to see distribution moving
 
-int N = 10000;
-int M = 500;
+int N = 1000;
+int M = 100;
 
 float normFactor = 0.1*float(M)/float(N);
-int setFrameRate = 60;
-float dRad = 10;
-float dDensity = 10;
+int setFrameRate = 100;
+float dRad = 5; // R ~= (V/(4000*N))^(1/3) for 0.1% of total Volume to be particles
+float dDensity = 1;
 int randVelAdd = 1;
-float maxVel = 2;
+//float maxVel = 2;
 float depth = 500; // for 3D visuals
 
 float maxSpSq = 4.5;
@@ -24,7 +24,7 @@ int maxCollisions = 0;
 
 float t = 0; // "time" as an x-axis
 int count = 0; // counting variable to set how often we reset the statistical 0's
-int averagingTime = 1000; // how often to calculate statistics over draw loops
+int averagingTime = 300; // how often to calculate statistics over draw loops
 
 float piSpeedSq;
 float sQspeedSum = 0;
@@ -33,8 +33,7 @@ int nCollisions = 0; // Number of collisions
 
 float energy;
 
-
-
+int colour = 0;
 
 
 float rotAngleX, rotAngleY = 0;
@@ -55,7 +54,7 @@ void setup()
   size(500, 500);//, P3D);
   frameRate(setFrameRate);
 
-  //background(0);
+  background(0);
 
   for (int i = 0; i < M; i ++)
   {
@@ -168,17 +167,20 @@ void draw()
 
     int index = floor(M * piSpeedSq / maxSpSq);
     //println(index);
-    v[index] += 1;
+    if (index < M)
+    {
+      v[index] += 1;
+    }
   }
 
 
   // Display statistics every time that averagingTime loops
   if (count >= averagingTime)
   {
-    background(0);
+    //background(0);
     count = 0;
-    
-    
+
+
 
     // Show all the particles in their new positons 
     //for (int i = 0; i < N; i = i + 1)
@@ -223,12 +225,21 @@ void draw()
 
     println("FrameRate: " + frameRate);
     //println("Pressure: " + pressure);
-    //println("Collisions: " + nCollisions);
-    //println("Average Speed Squared: " + energy);
+    println("Collisions: " + float(nCollisions)/averagingTime);
+    println("Average Speed Squared: " + energy);
     //println("N: " + N);
     //println();
-
-    stroke(255);
+    
+    if (colour >= 255)
+    {
+      colour %= 255;
+    } else
+    {
+      colour += 20;
+    }
+    stroke(255-colour, 0, colour);
+    
+    
     for (int i = 0; i < M; i ++)
     {
       //if (v[i] != 0)
@@ -238,7 +249,10 @@ void draw()
       point(2*i*width/M, height*(1 - normFactor*v[i]/averagingTime));
     }
     
-    //could save the images formed??
+    // Add a best fit function
+    
+    //save("Maxwellian.jpg");
+    //could save the images formed?? Save all in a sequence in a folder?
 
 
     if (t > width)
