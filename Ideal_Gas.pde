@@ -4,18 +4,34 @@
 // then turn off collisions - maybe then turn on stats or have them on
 // all the time to see distribution moving
 
-int N = 1000;
-int M = 100;
+// make the plot root(v) on x-axis
+// increase scale on y-axis
+// decrease the colour change per draw loop
+// make the plots individual arrays so I can highlight each with object functions
+// Look into matrix for partitioning
 
-float normFactor = 0.1*float(M)/float(N);
-int setFrameRate = 100;
-float dRad = 5; // R ~= (V/(4000*N))^(1/3) for 0.1% of total Volume to be particles
+
+int N = 500000;
+int averagingTime = 1; // how often to calculate statistics over draw loops
+float dRad = 3; // R ~= (V/(4000*N))^(1/3) for 0.1% of total Volume to be particles
+int M = 200;
+
+// Must be a squared factor of N
+int div = 40; // more bins leaves more dead room for collisions not to occour
+
+// the second dimension needs to have longer arrays around the expected velocity 
+int[][] bins = new int[div*div][2*N/div*div]; // twice the expected number should be enough?
+int[] binCount = new int [div*div];
+
+
+float normFactor = 0.3*float(M)/float(N);
+int setFrameRate = 1000;
 float dDensity = 1;
-int randVelAdd = 1;
+int randVelAdd = 1; // max random initial velocity in each direction (x, y, z)
 //float maxVel = 2;
-float depth = 500; // for 3D visuals
+float depth = 1000; // for 3D visuals
 
-float maxSpSq = 4.5;
+float maxSpSq = 4;
 
 // Normalising factors to help plotting later
 float maxPressure = 0;
@@ -24,7 +40,6 @@ int maxCollisions = 0;
 
 float t = 0; // "time" as an x-axis
 int count = 0; // counting variable to set how often we reset the statistical 0's
-int averagingTime = 300; // how often to calculate statistics over draw loops
 
 float piSpeedSq;
 float sQspeedSum = 0;
@@ -47,11 +62,14 @@ float posDiffSq;
 Particle pi, pj;
 ArrayList<Particle> p = new ArrayList<Particle>();
 int[] v = new int [M];
+//int  
 PVector posDiff;
+
+int index;
 
 void setup()
 {  
-  size(500, 500);//, P3D);
+  size(1000, 1000);//, P3D);
   frameRate(setFrameRate);
 
   background(0);
@@ -77,10 +95,39 @@ void setup()
     //k = random(0.5, 2);
 
     p.add(new Particle(x, y, z, vx, vy, vz, dRad, dDensity));
-    energy += x*x + y*y + z*z;
+    energy += vx*vx + vy*vy + vz*vz;
     //    size = p.size();
   }
   energy /= N;
+
+  for (int i = 0; i < N; i = i + 1)
+  {
+    //p.get(i).show();
+    piSpeedSq = magSq(p.get(i).vel);
+    sQspeedSum += piSpeedSq;
+
+    index = floor(M * piSpeedSq / maxSpSq);
+    //println(index);
+    //if (index < M)
+    //{
+    v[index] += 1;
+    //}
+  }
+
+  for (int i = 0; i < M-1; i ++)
+  {
+    //if (v[i] != 0)
+    //{
+    //println("count " + i + ": " + v[i]);
+    //}
+    //point(1*i*width/M, height*(1 - normFactor*v[i]/averagingTime));
+    stroke(255);
+    strokeWeight(0.5);
+    line(1*i*width/M, height*(1 - normFactor*v[i]/averagingTime), 
+      1*(i+1)*width/M, height*(1 - normFactor*v[i + 1]/averagingTime));
+    // make this a line graph
+  }
+  println("Hello");
 }
 
 
@@ -107,20 +154,25 @@ void draw()
   //println(count);
 
   // Loop is how many times the system evolves per draw loop
-  for (int loop = 1; loop > 0; loop = loop - 1)
+  //for (int loop = 1; loop > 0; loop = loop - 1)
+  //{
+  partition();
+
+  for (int k = 0; k < div*div; k ++)
   {
+
     // Looping through the ArrayList
-    for (int i = N-1; i >= 0; i = i - 1) 
+    for (int i = binCount[k]; i >= 0; i = i - 1) 
     {
 
       // looping through the remaining particles for each particle
-      for (int j = N-1; j >= 0; j = j - 1) 
+      for (int j = i-1; j >= 0; j = j - 1) 
       {
         if (i != j)
         {
           // shortening the object name for the use in the loop
-          pi = p.get(i);
-          pj = p.get(j);
+          pi = p.get(bins[k][i]);
+          pj = p.get(bins[k][j]);
 
           // relative vector and constant values for the displacements
           posDiff = pi.pos.copy().sub(pj.pos.copy());
@@ -159,13 +211,18 @@ void draw()
     }
   }
 
+  for (int i = 0; i < M; i ++)
+  {
+    v[i] = 0;
+  }
+
   for (int i = 0; i < N; i = i + 1)
   {
     //p.get(i).show();
     piSpeedSq = magSq(p.get(i).vel);
     sQspeedSum += piSpeedSq;
 
-    int index = floor(M * piSpeedSq / maxSpSq);
+    index = floor(M * piSpeedSq / maxSpSq);
     //println(index);
     if (index < M)
     {
@@ -229,29 +286,33 @@ void draw()
     println("Average Speed Squared: " + energy);
     //println("N: " + N);
     //println();
-    
+
     if (colour >= 255)
     {
       colour %= 255;
     } else
     {
-      colour += 20;
+      colour += 10;
     }
     stroke(255-colour, 0, colour);
-    
-    
-    for (int i = 0; i < M; i ++)
+    strokeWeight(0.5);
+
+
+    for (int i = 0; i < M - 1; i ++)
     {
       //if (v[i] != 0)
       //{
       //println("count " + i + ": " + v[i]);
       //}
-      point(2*i*width/M, height*(1 - normFactor*v[i]/averagingTime));
+      //point(1*i*width/M, height*(1 - normFactor*v[i]/averagingTime));
+      line(1*i*width/M, height*(1 - normFactor*v[i]/averagingTime), 
+        1*(i+1)*width/M, height*(1 - normFactor*v[i + 1]/averagingTime));
+      // make this a line graph
     }
-    
+
     // Add a best fit function
-    
-    //save("Maxwellian.jpg");
+
+    save("Maxwellian.jpg");
     //could save the images formed?? Save all in a sequence in a folder?
 
 
@@ -261,10 +322,7 @@ void draw()
     }
     t += 1;
 
-    for (int i = 0; i < M; i ++)
-    {
-      v[i] = 0;
-    }
     //v = null;
   }
+  //}
 }

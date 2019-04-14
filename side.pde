@@ -89,23 +89,23 @@ float cube(float num)
 }
 
 
-void axis()
-{
-  float lineLen = 100;
-  strokeWeight(4);
-  translate(width/2, height/2);
+//void axis()
+//{
+//  float lineLen = 100;
+//  strokeWeight(4);
+//  translate(width/2, height/2);
 
-  stroke(255, 0, 0); // RED X axis
-  line(0, lineLen, 0, 0, 0, 0);
+//  stroke(255, 0, 0); // RED X axis
+//  line(0, lineLen, 0, 0, 0, 0);
 
-  stroke(0, 255, 0); // GREEN Y axis
-  line(0, 0, 0, lineLen, 0, 0);
+//  stroke(0, 255, 0); // GREEN Y axis
+//  line(0, 0, 0, lineLen, 0, 0);
 
-  stroke(0, 0, 255); // BLUE Z axis
-  line(0, 0, 0, 0, 0, lineLen);
+//  stroke(0, 0, 255); // BLUE Z axis
+//  line(0, 0, 0, 0, 0, lineLen);
 
-  translate(-width/2, -height/2);
-}
+//  translate(-width/2, -height/2);
+//}
 
 
 
@@ -126,7 +126,7 @@ void rotation() // fix
 
 
   translate(x, y, 0);
-    //translate(0, 0, z);
+  //translate(0, 0, z);
   rotateX(rotAngleX);
   //translate(0, -y, -z);
 
@@ -156,4 +156,42 @@ void borders()
   line(0, height, depth, width, height, depth);
   line(width, height, 0, width, height, depth);
   line(width, 0, depth, width, height, depth);
+}
+
+void resetBins()
+{
+  for (int i = 0; i < div*div; i ++)
+  {
+    for (int j = 0; j < 1.5*N/div*div; j ++)
+    {
+      bins[i][j] = 0;
+    }
+  }
+}
+
+void partition()
+{
+  resetBins();
+
+  for (int i = 0; i < div*div; i ++)
+  {
+    binCount[i] = 0;
+  }
+
+  for (int j = 0; j < N; j ++)
+  {
+    int x = floor(p.get(j).pos.x / width * div);
+    int y = floor(p.get(j).pos.y / height * div);
+
+    int binIndex = x + y * div - div;
+
+    //println("x: " + x + ", y: " + y);
+    if (binIndex > 0)
+    {
+      binCount[binIndex-1] += 1;
+      bins[binIndex-1][binCount[binIndex-1]] = j;
+    }
+    // put the index of the particle in the bin that it is in
+    //
+  }
 }
