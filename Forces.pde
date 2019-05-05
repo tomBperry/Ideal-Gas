@@ -1,5 +1,3 @@
-
-
 void gravity(Particle particle1, Particle particle2)
 {
   float G = 0.1; // 0.001 for sun and two particles  

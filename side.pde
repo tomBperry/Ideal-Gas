@@ -162,7 +162,7 @@ void resetBins()
 {
   for (int i = 0; i < div*div; i ++)
   {
-    for (int j = 0; j < 1.5*N/div*div; j ++)
+    for (int j = 0; j < binSecDim; j ++)
     {
       bins[i][j] = 0;
     }
@@ -173,25 +173,96 @@ void partition()
 {
   resetBins();
 
-  for (int i = 0; i < div*div; i ++)
+  for (int i = 0; i < Nbins; i ++)
   {
     binCount[i] = 0;
   }
 
   for (int j = 0; j < N; j ++)
   {
-    int x = floor(p.get(j).pos.x / width * div);
-    int y = floor(p.get(j).pos.y / height * div);
+    int x = floor((p.get(j).pos.x / width) * div);
+    int y = floor((p.get(j).pos.y / height) * div);
 
-    int binIndex = x + y * div - div;
+    int binIndex = x + y * div;// - div - 1;
 
     //println("x: " + x + ", y: " + y);
-    if (binIndex > 0)
+    if (binIndex >= 0 && binIndex < Nbins)
     {
-      binCount[binIndex-1] += 1;
-      bins[binIndex-1][binCount[binIndex-1]] = j;
+      binCount[binIndex] += 1;
+      if (binCount[binIndex] < binSecDim)
+      {
+        bins[binIndex][binCount[binIndex]] = j;
+      }
     }
     // put the index of the particle in the bin that it is in
     //
+  }
+}
+
+void plot(int[] array, float weight, int rC, int bC, int gC)
+{
+  stroke(rC, bC, gC);
+  strokeWeight(weight);
+
+  for (int i = 0; i < array.length - 1; i ++)
+  {
+    //point(1*i*width/M, height*(1 - normFactor*v[i]));
+
+    line(5 + xScale[i], height*(1 - normFactor*array[i]), 
+      5+xScale[i + 1], height*(1 - normFactor*array[i + 1]));
+  }
+}
+
+void updateDistribution()
+{
+  for (int i = 0; i < N; i = i + 1)
+  {
+    //p.get(i).show();
+    piSpeedSq = magSq(p.get(i).vel);
+    //println(piSpeedSq);
+    //sQspeedSum += piSpeedSq;
+
+    index = floor(0.1*M * piSpeedSq/maxSpSq);
+
+    if (index < M)
+    {
+      v[index] += 1;
+    }
+  }
+}
+
+void stateVariablePlot()
+{
+  //stroke(255, 0, 0); // Red Pressure
+  //point(t, height*(1-pressure/maxPressure));
+  //stroke(0, 255, 0); // Green Energy
+  //point(t, height*(1-energy/maxEnergy));
+  //stroke(0, 0, 255); // Blue Collisions
+  //point(t, height*(1-float(nCollisions)/float(maxCollisions)));
+
+  //if (t > width)
+  //{
+  //  t = 0;
+  //}
+  //t += 1;
+
+
+  println("FrameRate: " + frameRate);
+  //println("Pressure: " + pressure);
+  println("Collisions: " + float(nCollisions)/averagingTime);
+  //println("Average Speed Squared: " + energy);
+  //println("N: " + N);
+  //println();
+}
+
+void updateMaxVals()
+{
+  //    if (pressure > maxPressure)
+  //    { maxPressure = pressure;}
+  //    if (energy > maxEnergy)
+  //    {maxEnergy = energy;}
+  if (nCollisions > maxCollisions)
+  {
+    maxCollisions = nCollisions;
   }
 }

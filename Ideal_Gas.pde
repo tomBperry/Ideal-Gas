@@ -9,27 +9,34 @@
 // decrease the colour change per draw loop
 // make the plots individual arrays so I can highlight each with object functions
 // Look into matrix for partitioning
+// find maxSpeedSq from the speed dist.
+// make smaller plots for collisions and framerate 
 
-
-int N = 500000;
+int N = 100000;
 int averagingTime = 1; // how often to calculate statistics over draw loops
-float dRad = 3; // R ~= (V/(4000*N))^(1/3) for 0.1% of total Volume to be particles
-int M = 200;
+
+float depth = 1000; // for 3D visuals
+float dRad = 2;//0.03*depth; // R ~= depth/(4000*N)^(1/3) for 0.1% of total Volume to be particles
+int M = 1000;
 
 // Must be a squared factor of N
-int div = 40; // more bins leaves more dead room for collisions not to occour
-
+int div = 5; // more bins leaves more dead room for collisions not to occour
+int Nbins = div*div;
 // the second dimension needs to have longer arrays around the expected velocity 
-int[][] bins = new int[div*div][2*N/div*div]; // twice the expected number should be enough?
-int[] binCount = new int [div*div];
+int binSecDim = floor(2*N/(Nbins));
+int[][] bins = new int[Nbins][binSecDim]; // twice the expected number should be enough?
+int[] binCount = new int [Nbins];
+
+float[] xScale = new float[M];
 
 
-float normFactor = 0.3*float(M)/float(N);
+float normFactor = 0.001;//0.float(M)/(float(N)*averagingTime);
+float xStretch = 30;
 int setFrameRate = 1000;
 float dDensity = 1;
 int randVelAdd = 1; // max random initial velocity in each direction (x, y, z)
 //float maxVel = 2;
-float depth = 1000; // for 3D visuals
+
 
 float maxSpSq = 4;
 
@@ -38,7 +45,7 @@ float maxPressure = 0;
 float maxEnergy = 0;
 int maxCollisions = 0;
 
-float t = 0; // "time" as an x-axis
+//float t = 0; // "time" as an x-axis
 int count = 0; // counting variable to set how often we reset the statistical 0's
 
 float piSpeedSq;
@@ -78,7 +85,12 @@ void setup()
   {
     v[i] = 0;
   }
-  //v = null;
+
+  // setting scale for x axis
+  for (int i = 0; i < M; i ++)
+  {
+    xScale[i] = xStretch*pow(i*width/M, 0.5);
+  }
 
   // Make N particles with random positions and velocities
   // Add them to the ArrayList p
@@ -88,81 +100,42 @@ void setup()
     y = random(height);
     z = random(depth);
 
-    vx = random(-randVelAdd, randVelAdd);
-    vy = random(-randVelAdd, randVelAdd);
-    vz = random(-randVelAdd, randVelAdd);
+    vx = pow(i*maxSpSq/N, 0.5);
 
-    //k = random(0.5, 2);
-
-    p.add(new Particle(x, y, z, vx, vy, vz, dRad, dDensity));
-    energy += vx*vx + vy*vy + vz*vz;
+    p.add(new Particle(x, y, z, vx, vx, vx, dRad, dDensity));
+    //energy += vx*vx + vy*vy + vz*vz;
     //    size = p.size();
   }
-  energy /= N;
+  //energy /= N;
 
-  for (int i = 0; i < N; i = i + 1)
-  {
-    //p.get(i).show();
-    piSpeedSq = magSq(p.get(i).vel);
-    sQspeedSum += piSpeedSq;
-
-    index = floor(M * piSpeedSq / maxSpSq);
-    //println(index);
-    //if (index < M)
-    //{
-    v[index] += 1;
-    //}
-  }
-
-  for (int i = 0; i < M-1; i ++)
-  {
-    //if (v[i] != 0)
-    //{
-    //println("count " + i + ": " + v[i]);
-    //}
-    //point(1*i*width/M, height*(1 - normFactor*v[i]/averagingTime));
-    stroke(255);
-    strokeWeight(0.5);
-    line(1*i*width/M, height*(1 - normFactor*v[i]/averagingTime), 
-      1*(i+1)*width/M, height*(1 - normFactor*v[i + 1]/averagingTime));
-    // make this a line graph
-  }
-  println("Hello");
+  updateDistribution();
+  plot(v, 1, 255, 255, 255);
 }
-
-
 
 void draw()
 { 
   //background(0);
   //lights();
-
-
   //rotation();
   //borders();
 
 
-  // set running total of force to 0 at the start of each loop
-
+  // set running total of force to 0 at the start of each loop over averagingTime
   if (count == 0)
   {
-    force = 0;
+    //force = 0;
     nCollisions = 0;
-    sQspeedSum = 0;
+    //sQspeedSum = 0;
   }
   count += 1;
-  //println(count);
 
-  // Loop is how many times the system evolves per draw loop
-  //for (int loop = 1; loop > 0; loop = loop - 1)
-  //{
   partition();
 
-  for (int k = 0; k < div*div; k ++)
+  for (int k = 0; k < Nbins; k ++)
   {
 
     // Looping through the ArrayList
-    for (int i = binCount[k]; i >= 0; i = i - 1) 
+    for (int i = binCount[k]; i >= 0 && i < binSecDim; i = i - 1) 
     {
 
       // looping through the remaining particles for each particle
@@ -179,13 +152,13 @@ void draw()
           posDiffSq = magSq(posDiff);
 
           // Check to see if particles are close enough to interact mechanically
-          if (posDiffSq <= 4*dRad*dRad)//(pi.rad + pj.rad)*(pi.rad + pj.rad))
+          if (posDiffSq <= 12*dRad*dRad)//(pi.rad + pj.rad)*(pi.rad + pj.rad))
           {
             collide(pi, pj);
             nCollisions ++;
           } else
           {
-            // Apply forces
+            // Apply any other forces
 
             //gravity(pi, pj);
             //Electric(pi, pj);
@@ -195,19 +168,11 @@ void draw()
     }
 
     // Different loop to not have conflicts while doing calculations
-
-
     for (int i = 0; i < N; i = i + 1) 
     {
-      Particle particle = p.get(i);
-
-      // allow infinite space by wrap-around
-      particle.edges();
-
-      // apply all forces and changes
-      particle.update();
-
-      //p.get(i).show();
+      Particle particle = p.get(i);      
+      particle.edges();  // Container walls collisions
+      particle.update();  // apply all forces and changes
     }
   }
 
@@ -216,113 +181,25 @@ void draw()
     v[i] = 0;
   }
 
-  for (int i = 0; i < N; i = i + 1)
-  {
-    //p.get(i).show();
-    piSpeedSq = magSq(p.get(i).vel);
-    sQspeedSum += piSpeedSq;
+  updateDistribution();
 
-    index = floor(M * piSpeedSq / maxSpSq);
-    //println(index);
-    if (index < M)
-    {
-      v[index] += 1;
-    }
-  }
-
-
-  // Display statistics every time that averagingTime loops
+  // Display statistics every averagingTime draw loops
   if (count >= averagingTime)
   {
     //background(0);
     count = 0;
 
+    updateMaxVals();
 
+    stateVariablePlot();
+    plot(v, 0.1, 255 - colour, 0, colour); 
 
-    // Show all the particles in their new positons 
-    //for (int i = 0; i < N; i = i + 1)
-    //{
-    //  //p.get(i).show();
-    //  piSpeedSq = magSq(p.get(i).vel);
-    //  sQspeedSum += piSpeedSq;
-
-    //  int index = floor(M * piSpeedSq / maxSpSq);
-    //  //println(index);
-    //  v[index] += 1;
-    //}
-
-    if (pressure > maxPressure)
-    {
-      maxPressure = pressure;
-    }
-    if (energy > maxEnergy)
-    {
-      maxEnergy = energy;
-    }
-    if (nCollisions > maxCollisions)
-    {
-      maxCollisions = nCollisions;
-    }
-
-    // Calculating the pressure from the wall collisions
+    //Calculating the pressure from the wall collisions
     // Could save this data and plot it - Thermodynamic limit
-    pressure = force;//(6*width*height)*1000;
-    energy = sQspeedSum;
-
-
-
-    //stroke(255, 0, 0); // Red Pressure
-    //point(t, height*(1-pressure/maxPressure));
-
-    //stroke(0, 255, 0); // Green Energy
-    //point(t, height*(1-energy/maxEnergy));
-
-    //stroke(0, 0, 255); // Blue Collisions
-    //point(t, height*(1-float(nCollisions)/float(maxCollisions)));
-
-    println("FrameRate: " + frameRate);
-    //println("Pressure: " + pressure);
-    println("Collisions: " + float(nCollisions)/averagingTime);
-    println("Average Speed Squared: " + energy);
-    //println("N: " + N);
-    //println();
-
-    if (colour >= 255)
-    {
-      colour %= 255;
-    } else
-    {
-      colour += 10;
-    }
-    stroke(255-colour, 0, colour);
-    strokeWeight(0.5);
-
-
-    for (int i = 0; i < M - 1; i ++)
-    {
-      //if (v[i] != 0)
-      //{
-      //println("count " + i + ": " + v[i]);
-      //}
-      //point(1*i*width/M, height*(1 - normFactor*v[i]/averagingTime));
-      line(1*i*width/M, height*(1 - normFactor*v[i]/averagingTime), 
-        1*(i+1)*width/M, height*(1 - normFactor*v[i + 1]/averagingTime));
-      // make this a line graph
-    }
-
-    // Add a best fit function
+    //pressure = force;//(6*width*height)*1000;
+    //energy = sQspeedSum;
 
     save("Maxwellian.jpg");
     //could save the images formed?? Save all in a sequence in a folder?
-
-
-    if (t > width)
-    {
-      t = 0;
-    }
-    t += 1;
-
-    //v = null;
   }
-  //}
 }
