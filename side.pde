@@ -1,7 +1,8 @@
 class Particle
 {
   PVector pos, vel, acc;
-  float rad, density, mass, charge, vol, col;
+  float rad, density, mass, charge, vol;
+  color col;
 
   Particle(float x0, float y0, float z0, float vx0, float vy0, float vz0, float radius, float density)      
   {
@@ -16,11 +17,12 @@ class Particle
 
     charge = 1;
 
-    col = map(density, dDensity, 5 * dDensity, 255, 0);
+    col = color(255, 255, 255);
   }
 
   void update()
   {
+    // Apply the kinematics to the particles
     vel.add(acc);
     pos.add(vel);
     acc.set(zero.copy());
@@ -29,7 +31,8 @@ class Particle
 
   void show()
   {
-    fill(col, col, 255);
+    // Draw the particles as spheres at their positions in their colour
+    fill(col);
     noStroke();
     pushMatrix();
     translate(pos.x, pos.y, pos.z);
@@ -39,11 +42,17 @@ class Particle
 
   void addForce(PVector force)
   {
+    // Add force to the acceleration through Newton 2
     acc.add(force.copy().div(mass));
   }
 
   void edges()
   {
+    // If a particle hits a wall then reverse its velocity in that direction
+    // if the particle is too far this may cause it to freeze in place
+
+    // Find the force taken to do this and add it to the total
+
     if (this.pos.x > width)
     {
       this.vel.x *= -1;
@@ -85,32 +94,37 @@ class Particle
 
 float cube(float num)
 {
+  // Simple function to cube a float
   return num * num * num;
 }
 
 
-//void axis()
-//{
-//  float lineLen = 100;
-//  strokeWeight(4);
-//  translate(width/2, height/2);
+void axis()
+{
+  // Draw a caresian reference axis
 
-//  stroke(255, 0, 0); // RED X axis
-//  line(0, lineLen, 0, 0, 0, 0);
+  float lineLen = 100;
+  strokeWeight(4);
+  translate(width/2, height/2);
 
-//  stroke(0, 255, 0); // GREEN Y axis
-//  line(0, 0, 0, lineLen, 0, 0);
+  stroke(255, 0, 0); // RED X axis
+  line(0, lineLen, 0, 0, 0, 0);
 
-//  stroke(0, 0, 255); // BLUE Z axis
-//  line(0, 0, 0, 0, 0, lineLen);
+  stroke(0, 255, 0); // GREEN Y axis
+  line(0, 0, 0, lineLen, 0, 0);
 
-//  translate(-width/2, -height/2);
-//}
+  stroke(0, 0, 255); // BLUE Z axis
+  line(0, 0, 0, 0, 0, lineLen);
+
+  translate(-width/2, -height/2);
+}
 
 
 
 void rotation() // fix
 {
+  // rotate the 3D space for better viewing
+
   if (mousePressed)
   {
     rotAngleX = map(mouseY, 0, height, 0, TWO_PI)%TWO_PI;
@@ -135,13 +149,16 @@ void rotation() // fix
   scale(0.4);
 }
 
+
 float magSq(PVector v)
 {
+  // Find the magnitude squared of a vector
   return v.x*v.x + v.y*v.y + v.z*v.z;
 }
 
 void borders()
 {
+  // For 3D plotting draw a line box to enclose the particles
   strokeWeight(3);
   stroke(255);
   line(0, 0, 0, width, 0, 0);
@@ -160,47 +177,59 @@ void borders()
 
 void resetBins()
 {
-  for (int i = 0; i < div*div; i ++)
+  // Reset the arrays to 0 for each loop
+  for (int i = 0; i < Nbins; i ++)
   {
     for (int j = 0; j < binSecDim; j ++)
     {
       bins[i][j] = 0;
     }
   }
-}
-
-void partition()
-{
-  resetBins();
 
   for (int i = 0; i < Nbins; i ++)
   {
     binCount[i] = 0;
   }
+}
+
+void partition()
+{
+  // Separate the particles into spacial bins depending on their position
+  resetBins();
 
   for (int j = 0; j < N; j ++)
   {
+    // Find which bin the particle should be in
     int x = floor((p.get(j).pos.x / width) * div);
     int y = floor((p.get(j).pos.y / height) * div);
+    int z = floor((p.get(j).pos.z / depth) * div);
+    int binIndex = x + y * div + z * div*div; 
 
-    int binIndex = x + y * div;// - div - 1;
+    // Effusions are for the moment representing how many particles are in each bin
+    if (binIndex == 0)
+    {
+      nEffuse += 1;
+    }
 
     //println("x: " + x + ", y: " + y);
     if (binIndex >= 0 && binIndex < Nbins)
     {
-      binCount[binIndex] += 1;
+      // if that bin isn't full (max set for optimisation)
       if (binCount[binIndex] < binSecDim)
       {
+        // specifiy the index to that bin
         bins[binIndex][binCount[binIndex]] = j;
       }
+
+      // incriment the number of particles in that bin
+      binCount[binIndex] += 1;
     }
-    // put the index of the particle in the bin that it is in
-    //
   }
 }
 
 void plot(int[] array, float weight, int rC, int bC, int gC)
 {
+  // Plot the speed distribtution with certain colours and line thickness
   stroke(rC, bC, gC);
   strokeWeight(weight);
 
@@ -208,21 +237,27 @@ void plot(int[] array, float weight, int rC, int bC, int gC)
   {
     //point(1*i*width/M, height*(1 - normFactor*v[i]));
 
-    line(5 + xScale[i], height*(1 - normFactor*array[i]), 
-      5+xScale[i + 1], height*(1 - normFactor*array[i + 1]));
+    line(xScale[i], height*(1 - normFactor*array[i]), 
+      xScale[i + 1], height*(1 - normFactor*array[i + 1]));
   }
 }
 
 void updateDistribution()
 {
+  // For each frame, sort the particles into M speed bins for plotting
+   
+  // Reseting the array to 0
+  for (int i = 0; i < M; i ++)
+  {
+    v[i] = 0;
+  }
+  
   for (int i = 0; i < N; i = i + 1)
   {
-    //p.get(i).show();
-    piSpeedSq = magSq(p.get(i).vel);
-    //println(piSpeedSq);
-    //sQspeedSum += piSpeedSq;
+    piSpeedSq = p.get(i).vel.magSq();
+    sQspeedSum += piSpeedSq;
 
-    index = floor(0.1*M * piSpeedSq/maxSpSq);
+    index = floor(0.8*sqrt(piSpeedSq)*M/maxSp);
 
     if (index < M)
     {
@@ -233,6 +268,8 @@ void updateDistribution()
 
 void stateVariablePlot()
 {
+  // print to the console various statistical properties of the simulation
+  
   //stroke(255, 0, 0); // Red Pressure
   //point(t, height*(1-pressure/maxPressure));
   //stroke(0, 255, 0); // Green Energy
@@ -249,14 +286,18 @@ void stateVariablePlot()
 
   println("FrameRate: " + frameRate);
   //println("Pressure: " + pressure);
-  println("Collisions: " + float(nCollisions)/averagingTime);
-  //println("Average Speed Squared: " + energy);
+  //println("Collisions: " + float(nCollisions));
+  println("Collisions/Particle: " + float(nCollisions)/float(N));
+  println("Energy/N: " + 0.5*p.get(0).mass*sQspeedSum/N);
+  println("Effusions: " + nEffuse/averagingTime);
   //println("N: " + N);
   //println();
 }
 
 void updateMaxVals()
 {
+  // These values are used as normalisation constants for different plots if needed
+  
   //    if (pressure > maxPressure)
   //    { maxPressure = pressure;}
   //    if (energy > maxEnergy)
@@ -265,4 +306,97 @@ void updateMaxVals()
   {
     maxCollisions = nCollisions;
   }
+}
+
+void calcThermSp()
+{
+  // Find the mode of the speed distribution and set this as the thermal speed
+  
+  int highestIndex = 0;
+  for (int i = 0; i < M; i ++)
+  {
+    if (v[i] > highestIndex)
+    {
+      highestIndex = i;
+    }
+  }
+
+  vTh = highestIndex*maxSp/M;
+}
+
+void displayParameters()
+{
+  // Display important statistics in the top right of the plot
+  
+  int xOffset = 300;
+  int tSize = 20;
+  fill(0);
+  stroke(0);
+  rect(width - xOffset, 0, width, tSize*4);
+
+  stroke(255);
+  fill(255);
+  textSize(20);
+  text("N: " + str(N), width - xOffset, tSize);
+  text("M: " + str(M), width - xOffset, 2*tSize);
+  text("Collisions/Particle: " + float(nCollisions)/float(N), width - xOffset, 3*tSize);
+  text("Chi Squared: " + chi, width - xOffset, 4*tSize);
+}
+
+void rainbow()
+{
+  // incriment the colour of the speed distribution plot
+  
+  colour += 1;
+  if (colour > 255)
+  {
+    colour = 0;
+  }
+}
+
+void maxWellian()
+{
+  // Make an array of the funcional form of a Maxwellian distribution to compare the derived one against
+  
+  float k = 230;
+  float maxFactor = 440;
+  for (int i = 0; i < M; i++)
+  {
+    float x = xScale[i];
+    max[i] = maxFactor*x*x*exp(-x*x/(2*k*k));
+    max[i] /= (k*k*k*PI*0.5);
+    println(max[i]);
+  }
+}
+
+void plotMax()
+{
+  // Plot the functional form of the Maxwellian
+  
+  stroke(255);
+  strokeWeight(1);
+
+  for (int i = 0; i < M - 1; i ++)
+  {
+    //point(1*i*width/M, height*(1 - normFactor*v[i]));
+
+    line(xScale[i], height*(1 - max[i]), 
+      xScale[i + 1], height*(1 - max[i + 1]));
+  }
+}
+
+void chiSq()
+{
+  // Statistical test for the fitness of the two plots  
+  
+  // Sum of difference between observed and expected value all squared over the expected value
+  chi = 0;
+  for (int i = 0; i < M - 1; i ++)
+  {
+    if (max[i] != 0)
+    {
+      chi += pow((max[i] - normFactor*v[i]), 2)/max[i];
+    }
+  }
+  println("Chi Squared value: " + chi);
 }
