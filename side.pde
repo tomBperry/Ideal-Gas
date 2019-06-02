@@ -3,7 +3,8 @@ class Particle
   PVector pos, vel, acc;
   float rad, density, mass, charge, vol;
   color col;
-
+  
+  // inputs of 3D vector position and velocity, radius and density
   Particle(float x0, float y0, float z0, float vx0, float vy0, float vz0, float radius, float density)      
   {
     pos = new PVector(x0, y0, z0);
@@ -43,6 +44,7 @@ class Particle
   void addForce(PVector force)
   {
     // Add force to the acceleration through Newton 2
+    // input of the vector force being added
     acc.add(force.copy().div(mass));
   }
 
@@ -94,7 +96,7 @@ class Particle
 
 float cube(float num)
 {
-  // Simple function to cube a float
+  // Simple function to cube a float of input float
   return num * num * num;
 }
 
@@ -121,7 +123,7 @@ void axis()
 
 
 
-void rotation() // fix
+void rotation()
 {
   // rotate the 3D space for better viewing
 
@@ -152,7 +154,7 @@ void rotation() // fix
 
 float magSq(PVector v)
 {
-  // Find the magnitude squared of a vector
+  // Find the magnitude squared of a vector input
   return v.x*v.x + v.y*v.y + v.z*v.z;
 }
 
@@ -229,7 +231,7 @@ void partition()
 
 void plot(int[] array, float weight, int rC, int bC, int gC)
 {
-  // Plot the speed distribtution with certain colours and line thickness
+  // Plot the speed distribtution with certain colours (RGB) and line thickness from inputs
   stroke(rC, bC, gC);
   strokeWeight(weight);
 
@@ -365,7 +367,7 @@ void maxWellian()
     float x = xScale[i];
     max[i] = maxFactor*x*x*exp(-x*x/(2*k*k));
     max[i] /= (k*k*k*PI*0.5);
-    println(max[i]);
+    //println(max[i]);
   }
 }
 
@@ -391,11 +393,16 @@ void chiSq()
   
   // Sum of difference between observed and expected value all squared over the expected value
   chi = 0;
-  for (int i = 0; i < M - 1; i ++)
+  for (int i = 2; i < M - 1; i ++)
   {
-    if (max[i] != 0)
+    if (v[i] != 0)
     {
-      chi += pow((max[i] - normFactor*v[i]), 2)/max[i];
+      chi += pow((max[i]/normFactor - v[i]), 2)/(v[i]);
+    }
+    else
+    {
+      // Show on the console how many data points are being ignored due to dividing by zero errors
+      //println(i);
     }
   }
   println("Chi Squared value: " + chi);

@@ -1,21 +1,8 @@
-// Make it so there are collisions until an equilibrium is reached
-//(nCollisions as the measure maybe?)
-
-// then turn off collisions - maybe then turn on stats or have them on
-// all the time to see distribution moving
-
-// make the plots individual arrays so I can highlight each with object functions
-// Look into matrix for partitioning
-// find maxSpeedSq from the speed dist.
-// make smaller plots for collisions and framerate
-// Find density of particles in different regions of the box
-// Have sum over all momentum to show it is 0?
-
-int N = 10000000;
+int N = 500000; // Number of Particles
 int averagingTime = 1; // how often to calculate statistics over draw loops
-float dRad = 1;//0.03*depth; // R ~= depth/(4000*N)^(1/3) for 0.1% of total Volume to be particles
+float dRad = 2;//0.03*depth; // R ~= depth/(4000*N)^(1/3) for 0.1% of total Volume to be particles
 int M = 200;
-int div = 200; // more bins leaves more dead room for collisions not to occour
+int div = 100; // more bins leaves more dead room for collisions not to occour
 int Nbins = div*div*div;
 
 // the second dimension needs to have longer arrays around the expected velocity 
